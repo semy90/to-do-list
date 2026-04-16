@@ -1,6 +1,6 @@
 package main
 
-import "to-do-list/internal/app"
+import "auth/internal/app"
 
 func main() {
 	app.StartApp()
