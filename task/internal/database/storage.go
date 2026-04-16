@@ -2,20 +2,21 @@ package database
 
 import (
 	"context"
-	"to-do-list/internal/models"
+	"task/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func New(pool *pgxpool.Pool) *Storage {
-	return &Storage{pool: pool}
+func NewTaskStorage(pool *pgxpool.Pool) *TaskStorage {
+	// pool.Exec(context.Background())
+	return &TaskStorage{pool: pool}
 }
 
-type Storage struct {
+type TaskStorage struct {
 	pool *pgxpool.Pool
 }
 
-func (s *Storage) GetTask(id int) (*models.Task, error) {
+func (s *TaskStorage) GetTask(id int) (*models.Task, error) {
 	task := &models.Task{}
 	row := s.pool.QueryRow(context.Background(), "SELECT * FROM tasks WHERE id = $1", id)
 	err := row.Scan(&task.Id, &task.Text, &task.UserId)
@@ -25,8 +26,7 @@ func (s *Storage) GetTask(id int) (*models.Task, error) {
 	return task, nil
 }
 
-// возможно переделать(не точно)
-func (s *Storage) AddTask(text string, user_id int) (int, error) {
+func (s *TaskStorage) AddTask(text string, user_id int) (int, error) {
 	var id int
 	err := s.pool.QueryRow(context.Background(), "INSERT INTO tasks (text, user_id) VALUES ($1, $2) RETURNING id;", text, user_id).Scan(&id)
 	if err != nil {
@@ -34,7 +34,7 @@ func (s *Storage) AddTask(text string, user_id int) (int, error) {
 	}
 	return id, nil
 }
-func (s *Storage) DelTask(id int) {
+func (s *TaskStorage) DelTask(id int) {
 	tag, err := s.pool.Exec(context.Background(), "DELETE FROM tasks WHERE id = $1", id)
 	if err != nil {
 		// do something

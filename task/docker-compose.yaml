@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:alpine
+    container_name: postgresTask
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PORT: ${DB_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+  migrate:
+    container_name: migrateTask
+    image: migrate/migrate
+    networks:
+      - app_network
+    volumes:
+      - ./migrations:/migrations 
+    command:
+      - -path=/migrations
+      - -database=${DATABASE_URL}
+      - up
+    depends_on:
+      db:
+        condition: service_healthy
+  task:
+    build:
+      dockerfile: Dockerfile
+    container_name: task 
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASS}@db:${DB_PORT}/${DB_NAME}?sslmode=disable
+      TASKPORT: ${TASKPORT}
+    ports:
+      - "${TASKPORT}:${TASKPORT}"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge

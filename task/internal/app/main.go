@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 	"net/http"
-	"to-do-list/internal/config"
-	"to-do-list/internal/database"
-	"to-do-list/internal/transport"
+	"task/internal/config"
+	"task/internal/database"
+	"task/internal/transport"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -21,7 +21,7 @@ func StartApp() {
 	if err != nil {
 		panic(err)
 	}
-	store := database.New(pool)
+	store := database.NewTaskStorage(pool)
 	taskcrud := transport.TaskCRUD{Storage: *store}
 
 	mux := http.NewServeMux()
@@ -29,6 +29,6 @@ func StartApp() {
 	mux.HandleFunc("POST /tasks", taskcrud.PostTask)
 	mux.HandleFunc("DELETE /tasks/{id}", taskcrud.DelTask)
 
-	http.ListenAndServe(":8080", mux)
+	http.ListenAndServe(":"+cnfg.TASKPORT, mux)
 
 }

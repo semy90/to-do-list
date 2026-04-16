@@ -6,12 +6,12 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"to-do-list/internal/database"
-	"to-do-list/internal/models"
+	"task/internal/database"
+	"task/internal/models"
 )
 
 type TaskCRUD struct {
-	Storage database.Storage
+	Storage database.TaskStorage
 }
 
 func (t *TaskCRUD) GetTask(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +24,6 @@ func (t *TaskCRUD) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := t.Storage.GetTask(id)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -41,6 +40,7 @@ func (t *TaskCRUD) GetTask(w http.ResponseWriter, r *http.Request) {
 func (t *TaskCRUD) PostTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
 	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return

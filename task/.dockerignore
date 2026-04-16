@@ -1,0 +1,27 @@
+.git
+.gitignore
+
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# vendor/
+
+Dockerfile
+docker-compose*.yml
+.dockerignore
+.gcloudignore
+
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+*.log
