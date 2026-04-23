@@ -1,6 +1,7 @@
-package transport
+package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 
 type TaskCRUD struct {
 	Storage database.TaskStorage
+	Ctx     context.Context
 }
 
 func (t *TaskCRUD) GetTask(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +24,7 @@ func (t *TaskCRUD) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := t.Storage.GetTask(id)
+	task, err := t.Storage.GetTask(t.Ctx, id)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -47,7 +49,7 @@ func (t *TaskCRUD) PostTask(w http.ResponseWriter, r *http.Request) {
 	}
 	json.Unmarshal(body, &task)
 
-	id, err := t.Storage.AddTask(task.Text, task.UserId)
+	id, err := t.Storage.AddTask(t.Ctx, task.Text, task.UserId)
 
 	if err != nil {
 		fmt.Println(err)
@@ -66,5 +68,5 @@ func (t *TaskCRUD) DelTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	t.Storage.DelTask(id)
+	t.Storage.DelTask(t.Ctx, id)
 }

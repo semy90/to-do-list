@@ -1,4 +1,4 @@
-package jwt
+package jwt_utils
 
 import (
 	"fmt"
@@ -66,10 +66,9 @@ func GetIdFromToken(tokenString string) (int, error) {
 		return -1, err
 	}
 
-	if claims, ok := token.Claims.(*CustomClaims); ok {
+	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		return claims.Id, nil
 	} else {
 		return -1, fmt.Errorf("error with claims in jwt")
 	}
-
 }

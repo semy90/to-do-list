@@ -24,5 +24,4 @@ docker-compose*.yml
 *.swo
 .DS_Store
 
-# .env
 *.log

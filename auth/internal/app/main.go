@@ -3,13 +3,13 @@ package app
 import (
 	"auth/internal/config"
 	"auth/internal/database"
-	"auth/internal/transport"
+	"auth/internal/service"
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/go-redis/redis"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 func StartApp() {
@@ -17,6 +17,12 @@ func StartApp() {
 	if err != nil {
 		panic(err)
 	}
+
+	logger, err := zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
+	ctx := context.WithValue(context.Background(), "logger", logger)
 
 	pool, err := pgxpool.New(context.Background(), cnfg.DATABASE_URL)
 	if err != nil {
@@ -28,15 +34,20 @@ func StartApp() {
 	}
 
 	redisClient := redis.NewClient(opt)
+	_, err = redisClient.Ping().Result()
+	if err != nil {
+		panic(err)
+	}
 	store := database.NewUserStorage(pool)
 	cache := database.NewRefreshCache(redisClient)
-	auth := transport.Auth{Storage: *store, Cache: *cache}
-
+	auth := service.Auth{Storage: *store, Cache: *cache, Ctx: ctx}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /register", auth.Register)
 	mux.HandleFunc("POST /login", auth.Login)
 	mux.HandleFunc("DELETE /logout", auth.Logout)
-	fmt.Println(cnfg.PORT)
-	http.ListenAndServe(":"+cnfg.PORT, mux)
+	mux.HandleFunc("GET /validate", auth.CheckAuth)
+	logger.Info("auth service start succesfully!")
+	if err := http.ListenAndServe(":"+cnfg.PORT, mux); err != nil {
+	}
 
 }

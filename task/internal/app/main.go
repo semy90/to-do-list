@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"task/internal/config"
 	"task/internal/database"
-	"task/internal/transport"
+	"task/internal/service"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 func StartApp() {
@@ -21,8 +22,11 @@ func StartApp() {
 	if err != nil {
 		panic(err)
 	}
+	logger, err := zap.NewProduction()
+	ctx := context.WithValue(context.Background(), "logger", logger)
+
 	store := database.NewTaskStorage(pool)
-	taskcrud := transport.TaskCRUD{Storage: *store}
+	taskcrud := service.TaskCRUD{Storage: *store, Ctx: ctx}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /tasks/{id}", taskcrud.GetTask)
