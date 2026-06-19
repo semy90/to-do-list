@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	TASKPORT     string
+	PORT         string
 	DATABASE_URL string
 }
 
@@ -16,5 +16,5 @@ func NewСonfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Config{TASKPORT: os.Getenv("TASKPORT"), DATABASE_URL: os.Getenv("DATABASE_URL")}, nil
+	return &Config{PORT: os.Getenv("PORT"), DATABASE_URL: os.Getenv("DATABASE_URL")}, nil
 }

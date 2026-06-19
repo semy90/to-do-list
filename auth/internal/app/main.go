@@ -42,12 +42,12 @@ func StartApp() {
 	cache := database.NewRefreshCache(redisClient)
 	auth := service.Auth{Storage: *store, Cache: *cache, Ctx: ctx}
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /register", auth.Register)
-	mux.HandleFunc("POST /login", auth.Login)
-	mux.HandleFunc("DELETE /logout", auth.Logout)
-	mux.HandleFunc("GET /validate", auth.CheckAuth)
+	mux.HandleFunc("POST /auth/register", auth.Register)
+	mux.HandleFunc("POST /auth/login", auth.Login)
+	mux.HandleFunc("DELETE /auth/logout", auth.Logout)
+	mux.HandleFunc("POST /auth/access", auth.NewAccessToken)
 	logger.Info("auth service start succesfully!")
 	if err := http.ListenAndServe(":"+cnfg.PORT, mux); err != nil {
+		panic(err)
 	}
-
 }

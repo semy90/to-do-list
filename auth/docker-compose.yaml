@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:alpine
-    container_name: postgresTask
+    container_name: postgresUser
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -18,8 +18,24 @@ services:
       - postgres_data:/var/lib/postgresql
     networks:
       - compose_network
+  redis:
+    container_name: redis
+    image: redis:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    volumes:
+      - redis_data:/data
+    
+    networks:
+      - compose_network
+    
   migrate:
-    container_name: migrateTask
+    container_name: migrateAuth
     image: migrate/migrate
     networks:
       - compose_network
@@ -32,15 +48,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-  taskservice:
+  authservice:
     build:
       dockerfile: Dockerfile
-    container_name: taskservice 
+    container_name: authservice 
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASS}@db:${DB_PORT}/${DB_NAME}?sslmode=disable
       PORT: ${PORT}
     
     depends_on:
@@ -48,12 +64,15 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     networks:
       - compose_network
       - app
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   compose_network:

@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -130,7 +129,7 @@ func (auth *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	parts := strings.Split(cookie.Value, " ")
 	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		http.Error(w, "go to login", http.StatusUnauthorized)
+		http.Error(w, "wrong token", http.StatusUnauthorized)
 		logger.Info("wrong authheader", zap.String("path", op))
 		return
 	}
@@ -142,13 +141,13 @@ func (auth *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth.Cache.Del(auth.Ctx, id)
-	cookie = &http.Cookie{Name: "Authorization", Value: "", HttpOnly: true}
+	cookie = &http.Cookie{Name: "Authorization", Value: ""}
 	http.SetCookie(w, cookie)
 	w.Write([]byte("logout succesfully"))
 	logger.Info("logout succesfully", zap.Int("id", id), zap.String("path", op))
 }
-func (auth *Auth) CheckAuth(w http.ResponseWriter, r *http.Request) {
-	const op = "auth.CheckAuth"
+func (auth *Auth) NewAccessToken(w http.ResponseWriter, r *http.Request) {
+	const op = "auth.NewAccessToken"
 	logger, _ := auth.Ctx.Value(("logger")).(*zap.Logger)
 	cookie, err := r.Cookie("Authorization")
 	if err != nil {
@@ -156,6 +155,7 @@ func (auth *Auth) CheckAuth(w http.ResponseWriter, r *http.Request) {
 		logger.Info("wrong cookie", zap.String("path", op))
 		return
 	}
+
 	parts := strings.Split(cookie.Value, " ")
 	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 		http.Error(w, "go to login", http.StatusUnauthorized)
@@ -164,19 +164,32 @@ func (auth *Auth) CheckAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := jwt_utils.GetIdFromToken(parts[1])
-	idString := strconv.Itoa(id)
-	refreshToken, _ := auth.Cache.Get(auth.Ctx, id)
-
-	if err == jwt.ErrTokenExpired && refreshToken != "" {
-		access, _ := jwt_utils.NewAccessToken(id)
-		cookie := &http.Cookie{Name: "Authorization", Value: "Bearer " + access, HttpOnly: true}
-		http.SetCookie(w, cookie)
-	} else if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		logger.Info("redirect to login", zap.String("path", op))
+	if err != nil {
+		http.Error(w, "wrong authtoken", http.StatusUnauthorized)
+		logger.Info("wrong authtoken", zap.String("path", op))
 		return
 	}
-	w.Header().Set("X-User-Id", idString)
-	w.Write([]byte("successful"))
-	logger.Info("validate", zap.Int("id", id), zap.String("path", op))
+
+	refresh, err := auth.Cache.Get(auth.Ctx, id)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		logger.Info("wrong authtoken", zap.String("path", op))
+		return
+	}
+	if refresh == "" {
+		http.Error(w, "go to logging", http.StatusUnauthorized)
+		logger.Info("wrong auth token", zap.String("path", op))
+		return
+	}
+	access, err := jwt_utils.NewAccessToken(id)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		logger.Info("err with new access token", zap.String("path", op))
+		return
+	}
+	cookie = &http.Cookie{Name: "Authorization", Value: "Bearer " + access, HttpOnly: true}
+	http.SetCookie(w, cookie)
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte("new token got succefully!"))
+	logger.Info("succesfuly logged", zap.Int("id", id), zap.String("path", op))
 }

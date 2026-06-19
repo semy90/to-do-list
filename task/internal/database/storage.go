@@ -33,12 +33,12 @@ func (s *TaskStorage) GetTasksByLimitAndOffset(ctx context.Context, userId, limi
 	return tasks, nil
 }
 
-func (s *TaskStorage) GetTask(ctx context.Context, taskId int) (*models.Task, error) {
+func (s *TaskStorage) GetTask(ctx context.Context, taskId, userId int) (*models.Task, error) {
 	// const op = "TaskStorage.GetTask"
 	// logger, _ := ctx.Value(("logger")).(*zap.Logger)
 
 	task := &models.Task{}
-	row := s.pool.QueryRow(context.Background(), "SELECT * FROM tasks WHERE id=$1", taskId)
+	row := s.pool.QueryRow(context.Background(), "SELECT * FROM tasks WHERE id=$1 AND user_id=$2", taskId, userId)
 	err := row.Scan(&task.Id, &task.Text, &task.UserId)
 	if err != nil {
 		return nil, err
@@ -58,8 +58,8 @@ func (s *TaskStorage) AddTask(ctx context.Context, text string, userId int) (int
 	logger.Info("task added successfuly", zap.Int("task_id", id))
 	return id, nil
 }
-func (s *TaskStorage) EditTask(ctx context.Context, text string, id int) {
-	tag, err := s.pool.Exec(context.Background(), "UPDATE tasks SET text = '$1' WHERE id=$2", text, id)
+func (s *TaskStorage) UpdateTask(ctx context.Context, text string, id, userId int) {
+	tag, err := s.pool.Exec(context.Background(), "UPDATE tasks SET text = '$1' WHERE id=$2 AND user_id=$3", text, id, userId)
 	if err != nil {
 		// do something
 	}
@@ -68,10 +68,10 @@ func (s *TaskStorage) EditTask(ctx context.Context, text string, id int) {
 	}
 }
 
-func (s *TaskStorage) DelTask(ctx context.Context, id int) {
+func (s *TaskStorage) DelTask(ctx context.Context, id, userId int) {
 	// const op = "TaskStorage.GetTask"
 	// logger, _ := ctx.Value(("logger")).(*zap.Logger)
-	tag, err := s.pool.Exec(context.Background(), "DELETE FROM tasks WHERE id = $1", id)
+	tag, err := s.pool.Exec(context.Background(), "DELETE FROM tasks WHERE id = $1 AND user_id=$2 ", id)
 	if err != nil {
 		// do something
 	}
